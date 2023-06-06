@@ -1,4 +1,4 @@
-from fastapi import FastAPI,Body
+from fastapi import FastAPI,Body,Response, status, HTTPException
 app = FastAPI() #nom de variable
 from pydantic import BaseModel
 from typing import Optional
@@ -45,7 +45,17 @@ async def getPlayers():
 
 
 @app.post("/players/")
-async def create_post(payload: Player):
+async def create_post(payload: Player, response:Response):
     print(payload.last_name)
     playerslist.append(payload.dict())
+
+    response.status_code = status.HTTP_201_CREATED
     return {"message" :f"Un Nouveau joueur a été ajouté : {payload.last_name}"}
+
+
+@app.get("/players/{identifier}")
+async def get_players(identifier: int, response:Response): 
+     try:
+        corresponding_player = playerslist[identifier - 1]
+     except:
+        raise HTTPException(status_code=404, detail="Player not found")
