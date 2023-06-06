@@ -47,5 +47,5 @@ async def getPlayers():
 @app.post("/players/")
 async def create_post(payload: Player):
     print(payload.last_name)
-    playerslist.append(payload.dict)
+    playerslist.append(payload.dict())
     return {"message" :f"Un Nouveau joueur a été ajouté : {payload.last_name}"}
