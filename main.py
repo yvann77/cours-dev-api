@@ -1,19 +1,13 @@
-from fastapi import FastAPI,Body,Response, status, HTTPException
-from pydantic import BaseModel
-from typing import Optional
+from fastapi import  FastAPI
 
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import models_orm
+from database import database_engine
 
-# Connexion DB
-connexion = psycopg2.connect(
-    host="dpg-ci8rn35gkuvmfnsaactg-a.frankfurt-postgres.render.com",
-    database = "football_render",
-    user="yvann_render",
-    password="IDpYil4X9K3VWiF1oyzAXwB1cFQj8pvp",
-    cursor_factory=RealDictCursor
-)
-cursor = connexion.cursor() 
+import router_teams
+
+# Créer les tables si elles ne sont pas presesntes dans la DB
+models_orm.Base.metadata.create_all(bind=database_engine)
+
 
 # Description
 api_description = description = """
@@ -32,105 +26,14 @@ tags_metadata = [{
     "externalDocs" : {
         "description" : "Items external docs",
         "url":"https://fastapi.taingolo.com/",
-    }
+    },
     },
 ]
 
-# APP
 app = FastAPI(
     title="Football API",
     description= api_description,
     openapi_tags= tags_metadata # Tags metadata
 )
 
-@app.get("/")
-async def root():
-    return {"message": "sheshhhhh"}
-
-# TEAMS
-class Team (BaseModel):
-        teamid: int
-        teamname: str
-        league: str
-        country : str
-        championleague : bool
-        chapeau: int
-
-teamslist = [{
-        "teamid": 1,
-        "teamname": "Barcelona",
-        "league": "La Liga",
-        "country" : "Espagne",
-        "championsleague" : True,
-        "chapeau" : 1
-        },
-        {
-            "teamid": 2,
-            "teamname": "Arsenal",
-            "league": "Premier League",
-            "country" : "Angleterre",
-            "championsleague" : True,
-            "chapeau" : 2
-        }]
-
-@app.get("/teams/", tags=["Teams"])
-async def get_Teams():
-    # REQUETE SQL
-    cursor.execute("SELECT * FROM team")
-    dbTeams= cursor.fetchall()
-    return {
-        "users" : dbTeams,
-        "limit": 10,
-        "total": 2,
-        "skip": 0,
-    }
-
-
-@app.post("/teams/", tags=["Teams"])
-async def create_team(payload: Team, response:Response):
-    print(payload.teamname)
-    cursor.execute("INSERT INTO team (teamname,league,country,championleague,chapeau) VALUES (%s,%s,%s,%s,%s) RETURNING *;",(payload.teamname,payload.league,payload.country,payload.championleague,payload.chapeau))
-    connexion.commit() # Sauvagarder dans la base de données
-    response.status_code = status.HTTP_201_CREATED
-    return {"message" :f"Une Nouvelle équipe a été ajouté : {payload.teamname}"}
-
-
-
-@app.get("/teams/{teamid}", tags=["Teams"])
-async def get_team(teamid: int, response:Response): 
-     try:
-        cursor.execute(f"SELECT * FROM team WHERE teamid={teamid}")
-        corresponding_team = cursor.fetchone()
-        if(corresponding_team):
-            return corresponding_team
-        else:
-            raise HTTPException(
-                status.HTTP_404_NOT_FOUND,
-                detail= "Team not found"
-            )
-     except:
-        raise HTTPException(status_code=404, detail="Team not found")
-
-# DELETE 
-@app.delete("/teams/{teamid}", tags=["Teams"])
-async def delete_team(teamid:int, response:Response):
-        cursor.execute(
-            "DELETE FROM team where teamid=%s RETURNING *;",
-            (teamid,)
-        )
-        connexion.commit()
-        return {"message" : f"Team deleted"}
-
-    
-
-@app.put("/teams/{teamid}", tags=["Teams"])
-async def replace_team(teamid: int, payload: Team, response: Response):
-    try:
-        cursor.execute(
-            'UPDATE team SET teamid = %s, teamname = %s, league = %s, country = %s, chapeau = %s WHERE teamid = %s RETURNING *;',
-            (payload.teamid, payload.teamname, payload.league, payload.country, payload.chapeau, teamid),
-        )
-        connexion.commit()
-        return {"message": f"Team updated successfully: {payload.teamname}"}
-    except:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team not found")
+app.include_router(router_teams.router)
