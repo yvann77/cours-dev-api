@@ -1,39 +1,28 @@
-from fastapi import  FastAPI
+from fastapi import FastAPI
 
-import models_orm
-from database import database_engine
+# Documentation
+from documentation.description import api_description
+from documentation.tags import tags_metadata
 
-import router_teams
+# Database 
+from classes.database import database_engine 
+import classes.models_orm # Import des ORM
 
-# Créer les tables si elles ne sont pas presesntes dans la DB
-models_orm.Base.metadata.create_all(bind=database_engine)
+# Import des routers
+import routers.router_teams,routers.router_transfers, routers.router_expenses, routers.router_auth
 
+# Créer les tables si elles ne sont pas présente dans la DB
+classes.models_orm.Base.metadata.create_all(bind=database_engine)
 
-# Description
-api_description = description = """
-Football API help you to find players and teams.
-
-## Players
-You will be able to : 
-* Create New Players
-* Get Players by id
-"""
-# Liste des tags utilises dans la doc
-
-tags_metadata = [{
-    "name" : "Players",
-    "description" : " Manage Players. So _Fancy_ they have their own docs",
-    "externalDocs" : {
-        "description" : "Items external docs",
-        "url":"https://fastapi.taingolo.com/",
-    },
-    },
-]
-
+#Lancement de l'API
 app = FastAPI(
     title="Football API",
     description= api_description,
     openapi_tags= tags_metadata # Tags metadata
 )
 
-app.include_router(router_teams.router)
+# Routers dédiés
+app.include_router(routers.router_teams.router)
+app.include_router(routers.router_transfers.router)
+app.include_router(routers.router_expenses.router)
+app.include_router(routers.router_auth.router)
