@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 # DTO : DATA TRANSFERT OBJECT
 # Représente la structure de la données (data type) en entrée ou en sortie de la Football API.
+
 # BODY FOR POST PER TEAM 
 class Team_POST_Body (BaseModel):
         teamid: int
